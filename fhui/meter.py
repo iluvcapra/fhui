@@ -1,0 +1,2 @@
+class Meter:
+    pass

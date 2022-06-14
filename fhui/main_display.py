@@ -1,0 +1,2 @@
+class MainDisplay:
+    pass
