@@ -1,6 +1,6 @@
 import pytest
 
-from fhui import SmallDisplayCharSet, LargeDisplayCharSet
+from fhui.charsets import SmallDisplayCharSet, LargeDisplayCharSet
 
 class TestSmallDisplayCharSet:
     def test_encode(self):
