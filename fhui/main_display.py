@@ -8,17 +8,17 @@ class MainDisplay:
         for i in range(0,80):
             display_cells[i] = 0x20
 
-    def line1(self) -> str:
+    def line1(self) -> List[int]:
         retval = " " * 40
         for i in range(0,40):
-            retval[i] = display_cells.get(i, " ")
+            retval[i] = display_cells.get(i, 0x20)
 
         return retval
 
-    def line2(self) -> str:
+    def line2(self) -> List[int]:
         retval = " " * 40
         for i in range(40,80):
-            retval[i] = display_cells.get(i, " ")
+            retval[i] = display_cells.get(i, 0x20)
 
         return retval
 
