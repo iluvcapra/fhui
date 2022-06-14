@@ -1,0 +1,3 @@
+class VPot:
+    pass
+
