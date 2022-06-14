@@ -1,4 +1,5 @@
-from Enum import IntFlag
+from enum import IntFlag
+from typing import Type
 
 class VPotRingAspect(IntFlag):
     ABS_EMPTY = 0x0
@@ -49,6 +50,19 @@ class VPotRingAspect(IntFlag):
     Q_V9 = 0x3a
     Q_V10 = 0x3b
 
+    @classmethod
+    def decode(cls, raw_value) -> ('VPotRingAspect', bool):
+        encoder_led = (raw_value & 0x40) > 0x0
+        raw_value &= 0x3f
+        ring_aspect = VPotRingAspect(raw_value)
+        return ring_aspect, encoder_led
+
+    @classmethod
+    def encode(cls, ring: 'VPotRingAspect', encoder_led: bool) -> int:
+        retval = ring.raw_value
+        if encoder_led:
+            retval += 0x40
+        return retval
 
 
 class VPotDisplay:
@@ -56,12 +70,9 @@ class VPotDisplay:
     encoder_led : bool
 
     def __init__(self):
-        ring_leds = VPotRingAspect.ABS_EMPTY
-        encoder_led = False
+        self.ring_aspect = VPotRingAspect.ABS_EMPTY
+        self.encoder_led = False
 
     def update_raw(self, value):
-        self.encoder_led = value & 0x40
-        value &= 0x3f
-
-
+        self.ring_aspect, self.encoder_led = VPotRingAspect.decode(value)
 
