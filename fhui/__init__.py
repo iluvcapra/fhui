@@ -1,18 +1,19 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class DisplayCharSet:
     CharSet = {}
+    
     @classmethod
     def decode(cls, codes : List[int], replacement_str : str = "_") -> str:
         retval = ""
         for i in codes:
             retval += cls.CharSet.get(i, replacement_str)
 
-        retval
+        return retval
 
     @classmethod
-    def encode(cls, string: str, replacement_code : int = 0x5f) -> List[int]:
-        retval= []
+    def encode(cls, string: str, replacement_code : int = 0x5f) -> List[Optional[int]]:
+        retval = list()
         for char in string:
             this_code = replacement_code
             for (key, value) in cls.CharSet.items():
@@ -21,7 +22,7 @@ class DisplayCharSet:
                     break
             retval.append(this_code)
 
-        retval
+        return retval
 
 class SmallDisplayCharSet(DisplayCharSet):
     CharSet = {
