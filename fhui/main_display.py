@@ -1,10 +1,19 @@
 from typing import List
+from dataclasses import dataclass 
 
+
+@dataclass
+class MainDisplayUpdate:
+    zone: int
+    chardata: List[int]
+
+
+@dataclass
 class MainDisplay:
     display_cells: List[int]
 
     def __init__(self):
-        display_zones = list()
+        self.display_zones = list()
         for i in range(0,80):
             display_cells[i] = 0x20
 
@@ -21,14 +30,15 @@ class MainDisplay:
             retval[i] = display_cells.get(i, 0x20)
 
         return retval
-
-    def update(self, zone: int, chars: List[int]):
-        if zone not in range(0,8) or len(chars) < 10:
-            #fixme this is an error
-            return
-        
-        for i in range(0,10):
-            display_cells[zone*10 + i] = chars[i]
+    
+    def update(self, updates: List[MainDisplayUpdate]):
+        for update in updates:
+            if update.zone not in range(0,8) or len(update.chardata) < 10:
+                #fixme this is an error
+                return
+            
+            for i in range(0,10):
+                display_cells[update.zone*10 + i] = update.chardata[i]
 
 
 

@@ -1,5 +1,6 @@
 from enum import IntFlag
 from typing import List
+from dataclasses import dataclass
 
 
 class TimeDisplayUpdate:
@@ -28,6 +29,7 @@ class TimeDisplayUpdate:
 
         return retval
 
+@dataclass
 class TimeDisplay:
     digits : List[int]
     decimal : List[bool]

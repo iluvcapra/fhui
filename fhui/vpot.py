@@ -1,5 +1,18 @@
 from enum import IntFlag
 from typing import Type
+from dataclasses import dataclass
+
+
+@dataclass
+class VPotDisplayUpdate:
+    ring_aspect: 'VPotRingAspect'
+    encoder_led: bool
+
+
+@dataclass
+class VPotActionUpdate:
+    delta: int = 0
+
 
 class VPotRingAspect(IntFlag):
     ABS_EMPTY = 0x0
@@ -65,14 +78,19 @@ class VPotRingAspect(IntFlag):
         return retval
 
 
-class VPotDisplay:
-    ring_aspect : VPotRingAspect
-    encoder_led : bool
+@dataclass
+class VPot:
+    ring_aspect : VPotRingAspect = VPotRingAspect.ABS_EMPTY
+    encoder_led : bool = False
+    rotation: int = 0
 
-    def __init__(self):
-        self.ring_aspect = VPotRingAspect.ABS_EMPTY
-        self.encoder_led = False
+    def rotate(self, delta: int):
+        self.rotation += delta
 
-    def update_raw(self, value):
-        self.ring_aspect, self.encoder_led = VPotRingAspect.decode(value)
+    def visit(self) -> VPotActionUpdate:
+        r = self.rotation
+        self.rotation = 0
+        return VPotActionUpdate(delta=r)
 
+    def update(self, update: VPotDisplayUpdate):
+        self.ring_aspect, self.encoder_led = update.ring_aspect, update.encoder_led
