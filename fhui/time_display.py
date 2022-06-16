@@ -1,19 +1,19 @@
 from enum import IntFlag
 from typing import List
 from dataclasses import dataclass
-from fhui.messages import MessageUpdate
+from fhui.message_update import MessageUpdate
 
 @dataclass
 class TimeDisplay:
-    digits : List[int] = list()
-    decimal : List[bool] = list()
+    digits : List[int]
+    decimal : List[bool]
     
     class Update(MessageUpdate):
         digits: List[int]
         decimals: List[bool]
 
         @classmethod
-        def from_midi(cls, data) -> List[Update]:
+        def from_midi(cls, data) -> List['Update']:
             retval = cls()
             for i in data:
                 retval.digits.append(i & 0x0f)

@@ -1,6 +1,6 @@
 from typing import List
 from dataclasses import dataclass 
-from fhui.messages import MessageUpdate
+from fhui.message_update import MessageUpdate
 
 @dataclass
 class MainDisplay:
@@ -17,7 +17,7 @@ class MainDisplay:
             retval = list()
             while True:
                 n = next(i, None)
-                if n == 0xf0:
+                if n == 0xf7:
                     break
 
                 elif n & 0x0f < 0x08:

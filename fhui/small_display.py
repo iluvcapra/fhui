@@ -1,5 +1,8 @@
-from fhui.messages import MessageUpdate
+from fhui.message_update import MessageUpdate
 from enum import IntEnum
+
+from dataclasses import dataclass
+from typing import List
 
 class SmallDisplay:
     cell : List[int]

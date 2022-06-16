@@ -1,5 +1,5 @@
 from enum import IntFlag, IntEnum
-from typing import Option, List
+from typing import List
 from dataclasses import dataclass
 
 
