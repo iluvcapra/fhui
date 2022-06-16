@@ -1,6 +1,8 @@
 from fhui.main_display import MainDisplay
 from fhui.time_display import TimeDisplay
+from fhui.small_display import SmallDisplay
 from typing import List
+
 
 class MessageUpdate:
     pass
@@ -11,15 +13,16 @@ class MessageConverter:
     def __init__(self):
         self.led_zone = None
     
-    def sysex2update(self, *midi) -> List[MessageUpdate]:
-        address = midi[0]
+    def sysex2update(self, *sysex_payload) -> List[MessageUpdate]:
+        
+        address, data = sysex_payload[0], sysex_payload[1:]
+
         if address == 0x10:
-            #small display update
-            pass
+            return SmallDisplay.Update.from_midi(data) 
         elif address == 0x11:
-            return TimeDisplay.Update.from_midi(midi[1:])
+            return TimeDisplay.Update.from_midi(data)
         elif address == 0x12:
-            return MainDisplay.Update.from_midi(midi[1:])
+            return MainDisplay.Update.from_midi(data)
 
     def midi2update(self, *midi) -> object:
         status = midi[0]
