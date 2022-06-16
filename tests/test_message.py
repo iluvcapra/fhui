@@ -1,5 +1,6 @@
 from fhui.messages import MessageConverter
 from fhui.main_display import MainDisplay
+from fhui.small_display import SmallDisplay
 
 class TestMessageConverter:
     
@@ -38,5 +39,15 @@ class TestMessageConverter:
         assert type(m[1]) == MainDisplay.Update
 
     def test_small_display_message(self):
-        pass
+
+        text = list(map(ord, "Snd1"))
+
+        m = self.converter.midi2update([0xf0, 0x00, 0x00, 0x66, 0x05, 0x00,
+            0x10, 0x04] + text + [0xf7])
+
+        assert len(m) == 1
+        assert type(m[0]) == SmallDisplay.Update
+
+        assert m[0].target == SmallDisplay.Target.STRIP_5
+        assert m[0].chardata == text
         
