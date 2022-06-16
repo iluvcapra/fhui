@@ -1,16 +1,40 @@
 from typing import List
 from dataclasses import dataclass 
-
+from fhui.messages import MessageUpdate
 
 @dataclass
 class MainDisplay:
     display_cells: List[int]
 
-        @dataclass
-        class Update:
-            zone: int
-            chardata: List[int]
+    @dataclass
+    class Update(MessageUpdate):
+        zone: int
+        chardata: List[int]
+        
+        @classmethod
+        def from_midi(cls, data) -> List['Update']:
+            i = iter(data)
+            retval = list()
+            while True:
+                n = next(i, None)
+                if n == 0xf0:
+                    break
 
+                elif n & 0x0f < 0x08:
+                    zone = n
+                    data = [next(i), next(i), next(i), next(i), 
+                            next(i), next(i), next(i), next(i),
+                            next(i), next(i)]
+
+                    elem = cls(zone=zone, chardata=data)
+                    retval.append(elem)
+
+                elif n == None:
+                    raise Exception("Malformed Large Display sysex update")
+                else:
+                    raise Exception("Unexpected Large Display zone")
+
+            return retval 
 
     def __init__(self):
         self.display_zones = list()
