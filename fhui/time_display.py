@@ -3,25 +3,30 @@ from typing import List
 from dataclasses import dataclass
 
 
-class TimeDisplayUpdate:
-    digits: List[int]
-    decimals: List[bool]
+@dataclass
+class TimeDisplay:
+    digits : List[int]
+    decimal : List[bool]
+    
+    class Update:
+        digits: List[int]
+        decimals: List[bool]
+
+        @classmethod
+        def encode(cls, update: 'TimeDisplayUpdate') -> List[int]:
+            retval = list()
+            for i in range(0, len(update.digits)):
+                this_val = update.digits[i]
+                if update.decimal[i]:
+                    this_val += 0x10
+                retval.append(this_val)
+
+            return retval
+                
 
     @classmethod
-    def encode(cls, update: 'TimeDisplayUpdate') -> List[int]:
-        retval = list()
-        for i in range(0, len(update.digits)):
-            this_val = update.digits[i]
-            if update.decimal[i]:
-                this_val += 0x10
-            retval.append(this_val)
-
-        return retval
-            
-
-    @classmethod
-    def decode(cls, data: List[int]) -> 'TimeDisplayUpdate':
-        retval = TimeDisplayUpdate()
+    def decode(cls, data: List[int]) -> Update:
+        retval = Update()
 
         for i in data:
             retval.digits.append(i & 0x0f)
@@ -29,11 +34,6 @@ class TimeDisplayUpdate:
 
         return retval
 
-@dataclass
-class TimeDisplay:
-    digits : List[int]
-    decimal : List[bool]
-    
     @classmethod
     def decode_digit(cls, val: int) -> str:
         retval = ("%X" % (val))[0:1] 
@@ -43,5 +43,5 @@ class TimeDisplay:
         self.digits = [0x0] * 8
         self.decimal = [False] * 8
 
-    def update(self, update: TimeDisplayUpdate):
+    def update(self, update: Update):
         pass

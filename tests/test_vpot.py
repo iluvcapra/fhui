@@ -1,6 +1,6 @@
 import pytest
 
-from fhui.vpot import VPot, VPotRingAspect, VPotDisplayUpdate
+from fhui.vpot import VPotDisplay
 
 
 class TestVPotDisplay:

@@ -3,14 +3,14 @@ from dataclasses import dataclass
 
 
 @dataclass
-class MainDisplayUpdate:
-    zone: int
-    chardata: List[int]
-
-
-@dataclass
 class MainDisplay:
     display_cells: List[int]
+
+        @dataclass
+        class Update:
+            zone: int
+            chardata: List[int]
+
 
     def __init__(self):
         self.display_zones = list()
@@ -31,7 +31,7 @@ class MainDisplay:
 
         return retval
     
-    def update(self, updates: List[MainDisplayUpdate]):
+    def update(self, updates: List[Update]):
         for update in updates:
             if update.zone not in range(0,8) or len(update.chardata) < 10:
                 #fixme this is an error
