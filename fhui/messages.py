@@ -20,13 +20,15 @@ class MessageConverter:
             return TimeDisplay.Update.from_midi(data)
         elif address == 0x12:
             return MainDisplay.Update.from_midi(data)
+        else:
+            raise Exception("Unrecognized Sysex message")
 
     def midi2update(self, midi) -> List[MessageUpdate]:
         status = midi[0]
         
         if status == 0xf0:
             #sysex        
-            if midi[1:5] == [0x00, 0x00, 0x66, 0x05, 0x00]:
+            if midi[1:6] == [0x00, 0x00, 0x66, 0x05, 0x00]:
                  #addressed to us
                 return self.sysex2update(midi[6:])
 
