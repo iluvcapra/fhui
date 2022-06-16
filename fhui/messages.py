@@ -14,7 +14,6 @@ class MessageConverter:
         self.led_zone = None
     
     def sysex2update(self, *sysex_payload) -> List[MessageUpdate]:
-        
         address, data = sysex_payload[0], sysex_payload[1:]
 
         if address == 0x10:
@@ -27,11 +26,12 @@ class MessageConverter:
     def midi2update(self, *midi) -> object:
         status = midi[0]
         
-        if status == 0xf7:
+        if status == 0xf0:
             #sysex        
             if midi[1:5] == [0x00, 0x00, 0x66, 0x05, 0x00]:
                  #addressed to us
                 return self.sysex2update(midi[6:])
+
         elif status == 0x90:
             # ping 
             pass
