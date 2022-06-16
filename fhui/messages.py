@@ -1,4 +1,6 @@
 from fhui.main_display import MainDisplay
+from fhui.time_display import TimeDisplay
+from typing import List
 
 class MessageUpdate:
     pass
@@ -15,8 +17,7 @@ class MessageConverter:
             #small display update
             pass
         elif address == 0x11:
-            #timecode display update
-            pass
+            return TimeDisplay.Update.from_midi(midi[1:])
         elif address == 0x12:
             return MainDisplay.Update.from_midi(midi[1:])
 
