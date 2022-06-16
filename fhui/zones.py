@@ -1,9 +1,9 @@
 from enum import IntEnum, unique
 
 @unique
-class Zone(IntEnum):
+class ZonePort(IntEnum):
 
-    # 0xF0 for zone, 0x0f for port
+    # 0xF0 for zone, 0x0F for port
     STRIP_1_FADER   = 0x0000
     STRIP_1_SELECT  = 0x0001
     STRIP_1_MUTE    = 0x0000
@@ -77,14 +77,14 @@ class Zone(IntEnum):
     STRIP_8_REC     = 0x0707
     
     #keyboard shortcuts
-    CTRL_CLTCH      = 0x0800
-    SHIFT_ADD       = 0x0801
-    EDITMODE        = 0x0802
-    UNDO            = 0x0803
-    ALT_FILE        = 0x0804
-    OPTION_ALL      = 0x0805
-    EDITTOOL        = 0x0806
-    SAVE            = 0x0807
+    KBD_CTRL_CLTCH  = 0x0800
+    KBD_SHIFT_ADD   = 0x0801
+    KBD_EDITMODE    = 0x0802
+    KBD_UNDO        = 0x0803
+    KBD_ALT_FINE    = 0x0804
+    KBD_OPTION_ALL  = 0x0805
+    KBD_EDITTOOL    = 0x0806
+    KBD_SAVE        = 0x0807
     
     # windows
     MIX             = 0x0900
@@ -145,13 +145,116 @@ class Zone(IntEnum):
     IN              = 0x1002
     OUT             = 0x1003
     POST            = 0x1004
-
+    
+    # control room section
     MON_INPUT_3     = 0x1100
     MON_INPUT_2     = 0x1101
     MON_INPUT_1     = 0x1102
     MON_MUTE        = 0x1103
     MON_DISCRETE    = 0x1104
 
+    MON_OUTPUT_3    = 0x1200
+    MON_OUTPUT_2    = 0x1201
+    MON_OUTPUT_1    = 0x1202
+    MON_DIM         = 0x1203
+    MON_MONO        = 0x1204
+    
+    # numeric entry keypad
+    KEYPAD_0        = 0x1300
+    KEYPAD_1        = 0x1301
+    KEYPAD_4        = 0x1302
+    KEYPAD_2        = 0x1303
+    KEYPAD_5        = 0x1304
+    KEYPAD_DECIMAL  = 0x1305
+    KEYPAD_3        = 0x1306
+    KEYPAD_6        = 0x1307
 
+    KEYPAD_ENTER    = 0x1400
+    KEYPAD_PLUS     = 0x1401
+
+    KEYPAD_7        = 0x1500
+    KEYPAD_8        = 0x1501
+    KEYPAD_9        = 0x1502
+    KEYPAD_MINUS    = 0x1503
+    KEYPAD_CLEAR    = 0x1504
+    KEYPAD_EQUALS   = 0x1505
+    KEYPAD_SOLIDUS  = 0x1506
+    KEYPAD_ASTERISK = 0x1507
+    
+    #time display indicators
+    ANN_TIMECODE    = 0x1600
+    ANN_FEET        = 0x1601
+    ANN_BEAT        = 0x1602
+    ANN_RUDE_SOLO   = 0x1603
+
+    #automation enables
+    AUTO_PLUGIN     = 0x1700
+    AUTO_PAN        = 0x1701
+    AUTO_FADER      = 0x1702
+    AUTO_SENDMUTE   = 0x1703
+    AUTO_SEND       = 0x1704
+    AUTO_MUTE       = 0x1705
+
+    #automation mode
+    MODE_TRIM       = 0x1800
+    MODE_LATCH      = 0x1801
+    MODE_READ       = 0x1802
+    MODE_OFF        = 0x1803
+    MODE_WRITE      = 0x1804
+    MODE_TOUCH      = 0x1805
+
+    #status/group
+    STATUS_PHASE    = 0x1900
+    STATUS_MONITOR  = 0x1901
+    STATUS_AUTO     = 0x1902
+    GROUP_SUSPEND   = 0x1903
+    GROUP_CREATE    = 0x1904
+    GROUP_GROUP     = 0x1905
+
+    #clip/region tools
+    EDIT_PASTE      = 0x1a00
+    EDIT_CUT        = 0x1a01
+    EDIT_CAPTURE    = 0x1a02
+    EDIT_DELETE     = 0x1a03
+    EDIT_COPY       = 0x1a04
+    EDIT_SEPARATE   = 0x1a05
+
+    #function keys
+    FUNC_F1         = 0x1b00
+    FUNC_F2         = 0x1b01
+    FUNC_F3         = 0x1b02
+    FUNC_F4         = 0x1b03
+    FUNC_F5         = 0x1b04
+    FUNC_F6         = 0x1b05
+    FUNC_F7         = 0x1b06
+    FUNC_F8_ESC     = 0x1b07
+
+    #dsp/parameter edit
+    DSP_INS_PARAM   = 0x1c00
+    DSP_ASSIGN      = 0x1c01
+    DSP_SELECT1     = 0x1c02
+    DSP_SELECT2     = 0x1c03
+    DSP_SELECT3     = 0x1c04
+    DSP_SELECT4     = 0x1c05
+    DSP_BYPASS      = 0x1c06
+    DSP_COMPARE     = 0x1c07
+
+    #utility
+    UTIL_RELAY1     = 0x1d00
+    UTIL_RELAY2     = 0x1d01
+    UTIL_CLICKER    = 0x1d02
+    UTIL_BEEPER     = 0x1d03
+
+    @classmethod
+    def from_zone_port(zone: int, port: int) -> 'ZonePort':
+        return cls( (zone & 0xF0 << 8) ^ ( port & 0x0F ))
+
+    @property
+    def zone(self):
+        return (self.value >> 8) & 0x0F
+
+    @property
+    def port(self):
+        return (self.value & 0x0F)
 
 
