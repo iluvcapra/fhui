@@ -1,5 +1,5 @@
-from enum import IntFlag
-from typing import Type
+from enum import IntFlag, IntEnum
+from typing import Option, List
 from dataclasses import dataclass
 
 
@@ -69,13 +69,28 @@ class VPotDisplay:
                 retval += 0x40
             return retval
 
+    class Ident(IntEnum):
+        STRIP_1 = 0x0
+        STRIP_2 = 0x1
+        STRIP_3 = 0x2
+        STRIP_4 = 0x3
+        STRIP_5 = 0x4
+        STRIP_6 = 0x5
+        STRIP_7 = 0x6
+        STRIP_8 = 0x7
+        PARAM_1 = 0x8
+        PARAM_2 = 0x9
+        PARAM_3 = 0xa
+        PARAM_4 = 0xb
+
     @dataclass
     class Update:
         ring_aspect: 'RingAspect'
         encoder_led: bool
+        ident: 'Ident'
 
     ring_aspect : 'RingAspect' = RingAspect.ABS_EMPTY
     encoder_led : bool = False
-
+    
     def update(self, update: Update):
         self.ring_aspect, self.encoder_led = update.ring_aspect, update.encoder_led
