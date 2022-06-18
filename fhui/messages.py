@@ -22,6 +22,29 @@ class MessageConverter:
             return MainDisplay.Update.from_midi(data)
         else:
             raise Exception("Unrecognized Sysex message")
+    
+    def parse_running_status(self, midi):
+        
+        words = iter(midi)
+        retval = list()
+        while True:
+            note = next(words, None)
+            if note is None:
+                break
+            
+            try:
+                if note & 0xf0 == 0x10: 
+                    pass #VPot.Update
+                elif note == 0x0c:
+                    self.led_zone = next(words)
+                elif note == 0x2c:
+                    pass #led update
+                elif (note & 0xf0 == 0x00) and (note & 0x0f < 0x08):
+                    pass #fader update
+            except StopIteration:
+                raise Exception("Unexpected end of MIDI message")
+
+        return retval
 
     def midi2update(self, midi) -> List[MessageUpdate]:
         status = midi[0]
@@ -39,10 +62,7 @@ class MessageConverter:
             # vu update
             pass
         elif status == 0xb0:
-            # led updates
-            note = midi[1]
-            if note & 0xf0 == 0x10: 
-                pass
-                #VPot.Update
-            elif note & 0xf0 == 0x20:
-                pass 
+            self.parse_running_status(midi[1:])
+ 
+        else:
+            raise Exeption("Unrecognized MIDI status word %x" % status)

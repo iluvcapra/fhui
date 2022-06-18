@@ -246,7 +246,7 @@ class ZonePort(IntEnum):
     UTIL_BEEPER     = 0x1d03
 
     @classmethod
-    def from_zone_port(zone: int, port: int) -> 'ZonePort':
+    def from_zone_port(cls, zone: int, port: int) -> 'ZonePort':
         return cls( (zone & 0xF0 << 8) ^ ( port & 0x0F ))
 
     @property
