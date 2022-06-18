@@ -1,6 +1,7 @@
 from fhui.main_display import MainDisplay
 from fhui.time_display import TimeDisplay
 from fhui.small_display import SmallDisplay
+from fhui.zones import ZonePort
 from fhui.message_update import MessageUpdate
 
 from typing import List
@@ -27,6 +28,7 @@ class MessageConverter:
         
         words = iter(midi)
         retval = list()
+
         while True:
             note = next(words, None)
             if note is None:
@@ -35,15 +37,26 @@ class MessageConverter:
             try:
                 if note & 0xf0 == 0x10: 
                     pass #VPot.Update
+
                 elif note == 0x0c:
                     self.led_zone = next(words)
+
                 elif note == 0x2c:
-                    pass #led update
+                    port_word = next(words)
+                    zp = ZonePort.from_zone_port(self.led_zone, port_word & 0x0f)
+                    if port_word & 0xf0 == 0x00:
+                        update = ZonePort.Update(port=zp, led_state=False)
+                    elif port_word & 0xf0 == 0x40:
+                        update = ZonePort.Update(port=zp, led_state=True)
+
+                    retval.append(update)
+
                 elif (note & 0xf0 == 0x00) and (note & 0x0f < 0x08):
                     pass #fader update
+
             except StopIteration:
                 raise Exception("Unexpected end of MIDI message")
-
+        
         return retval
 
     def midi2update(self, midi) -> List[MessageUpdate]:

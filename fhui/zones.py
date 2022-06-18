@@ -1,4 +1,8 @@
 from enum import IntEnum, unique
+from fhui.message_update import MessageUpdate
+from dataclasses import dataclass
+from typing import List, Optional
+
 
 @unique
 class ZonePort(IntEnum):
@@ -6,7 +10,7 @@ class ZonePort(IntEnum):
     # 0xF0 for zone, 0x0F for port
     STRIP_1_FADER   = 0x0000
     STRIP_1_SELECT  = 0x0001
-    STRIP_1_MUTE    = 0x0000
+    STRIP_1_MUTE    = 0x0002
     STRIP_1_SOLO    = 0x0003
     STRIP_1_AUTO    = 0x0004
     STRIP_1_VSEL    = 0x0005
@@ -15,7 +19,7 @@ class ZonePort(IntEnum):
 
     STRIP_2_FADER   = 0x0100
     STRIP_2_SELECT  = 0x0101
-    STRIP_2_MUTE    = 0x0100
+    STRIP_2_MUTE    = 0x0102
     STRIP_2_SOLO    = 0x0103
     STRIP_2_AUTO    = 0x0104
     STRIP_2_VSEL    = 0x0105
@@ -24,7 +28,7 @@ class ZonePort(IntEnum):
 
     STRIP_3_FADER   = 0x0200
     STRIP_3_SELECT  = 0x0201
-    STRIP_3_MUTE    = 0x0200
+    STRIP_3_MUTE    = 0x0202
     STRIP_3_SOLO    = 0x0203
     STRIP_3_AUTO    = 0x0204
     STRIP_3_VSEL    = 0x0205
@@ -33,7 +37,7 @@ class ZonePort(IntEnum):
 
     STRIP_4_FADER   = 0x0300
     STRIP_4_SELECT  = 0x0301
-    STRIP_4_MUTE    = 0x0300
+    STRIP_4_MUTE    = 0x0302
     STRIP_4_SOLO    = 0x0303
     STRIP_4_AUTO    = 0x0304
     STRIP_4_VSEL    = 0x0305
@@ -42,7 +46,7 @@ class ZonePort(IntEnum):
 
     STRIP_5_FADER   = 0x0400
     STRIP_5_SELECT  = 0x0401
-    STRIP_5_MUTE    = 0x0400
+    STRIP_5_MUTE    = 0x0402
     STRIP_5_SOLO    = 0x0403
     STRIP_5_AUTO    = 0x0404
     STRIP_5_VSEL    = 0x0405
@@ -51,7 +55,7 @@ class ZonePort(IntEnum):
 
     STRIP_6_FADER   = 0x0500
     STRIP_6_SELECT  = 0x0501
-    STRIP_6_MUTE    = 0x0500
+    STRIP_6_MUTE    = 0x0502
     STRIP_6_SOLO    = 0x0503
     STRIP_6_AUTO    = 0x0504
     STRIP_6_VSEL    = 0x0505
@@ -60,7 +64,7 @@ class ZonePort(IntEnum):
 
     STRIP_7_FADER   = 0x0600
     STRIP_7_SELECT  = 0x0601
-    STRIP_7_MUTE    = 0x0600
+    STRIP_7_MUTE    = 0x0602
     STRIP_7_SOLO    = 0x0603
     STRIP_7_AUTO    = 0x0604
     STRIP_7_VSEL    = 0x0605
@@ -69,7 +73,7 @@ class ZonePort(IntEnum):
 
     STRIP_8_FADER   = 0x0700
     STRIP_8_SELECT  = 0x0701
-    STRIP_8_MUTE    = 0x0700
+    STRIP_8_MUTE    = 0x0702
     STRIP_8_SOLO    = 0x0703
     STRIP_8_AUTO    = 0x0704
     STRIP_8_VSEL    = 0x0705
@@ -258,3 +262,9 @@ class ZonePort(IntEnum):
         return (self.value & 0x0F)
 
 
+class ZonePort:
+
+    @dataclass
+    class Update(MessageUpdate):
+        port: ZonePort
+        led_state: bool
