@@ -1,6 +1,7 @@
 from fhui.messages import MessageConverter
 from fhui.main_display import MainDisplay
 from fhui.small_display import SmallDisplay
+from fhui.time_display import TimeDisplay
 
 class TestMessageConverter:
     
@@ -50,4 +51,15 @@ class TestMessageConverter:
 
         assert m[0].target == SmallDisplay.Target.STRIP_5
         assert m[0].chardata == text
-        
+    
+    def test_time_display_message(self):
+        data = ([0x3, 0x2, 0x19, 0x2])
+
+        m = self.converter.midi2update([0xf0, 0x00, 0x00, 0x66, 0x05, 0x00,
+            0x11] + data)
+
+        assert len(m) == 1
+        assert type(m[0]) == TimeDisplay.Update
+
+        assert m[0].digits == [3,2,9,2]
+        assert m[0].decimals == [False, False, True, False]
