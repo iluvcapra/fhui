@@ -1,5 +1,7 @@
 from typing import List
 from dataclasses import dataclass
+from enum import IntEnum
+
 from fhui.small_display import SmallDisplayTarget
 from fhui.vpot import VPotIdent, VPotRingAspect 
 
@@ -35,10 +37,30 @@ class TimecodeDisplayUpdate(Message):
     data: List[int]
 
 
+class VUMeterSide(IntEnum):
+    LEFT = 0
+    RIGHT = 0
+
+
+class VUMeterValue(IntEnum):
+    RED = 0x0c
+    YELLOW_2  = 0x0b
+    YELLOW_4  = 0x0a
+    YELLOW_6  = 0x09
+    GREEN_8   = 0x08
+    GREEN_10  = 0x07
+    GREEN_14  = 0x06
+    GREEN_20  = 0x05
+    GREEN_30  = 0x04
+    GREEN_40  = 0x03
+    GREEN_50  = 0x02
+    GREEN_60  = 0x01
+    DARK_60   = 0x00
+
 @dataclass 
 class VUMeterUpdate(Message):
     channel: int
-    side: int
+    side: VUMeterSide
     value: int
 
 
@@ -100,15 +122,15 @@ def midi2messages(midi) -> List[Message]:
 
     elif status == 0xa0 and data[0] & 0xF0 == 0x00 and len(data) == 2:
         return [VUMeterUpdate(
-                channel=data[1] & 0x0F,
-                side=(data[2] & 0xF0) >> 8,
-                value=(data[2] & 0x0F)
+                channel=data[0] & 0x0F,
+                side=VUMeterSide((data[1] & 0xF0) >> 8),
+                value=VUMeterValue(data[1] & 0x0F)
                 )]
 
     elif status == 0xb0 and data[0] & 0xF0 == 0x10 and len(data) == 2:
         return [VPotDisplayUpdate(
-            ident=VPotIdent(data[1] &0x0F),
-            aspect=VPotRingAspect(data[2]))]
+            ident=VPotIdent(data[0] & 0x0F),
+            aspect=VPotRingAspect(data[1]))]
 
     elif status == 0xb0:
         retval = list()
@@ -124,7 +146,7 @@ def midi2messages(midi) -> List[Message]:
             elif data[i] & 0xF0 == 0x00 and ( 0 <= data[i] & 0x0F <= 7):
                 retval.append(FaderPositionUpdate(hi_byte=True, value=data[i]))
             
-            elif data[i] & 0xF0 == 0x20 and (0 <= data[i] & 0x0F <= 7):
+            elif data[i] & 0xF0 == 0x20 and ( 0 <= data[i] & 0x0F <= 7):
                 retval.append(FaderPositionUpdate(hi_byte=False, value=data[i]))
 
         return retval
