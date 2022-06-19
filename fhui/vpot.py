@@ -17,7 +17,7 @@ class VPotIdent(IntEnum):
     PARAM_3 = 0xa
     PARAM_4 = 0xb
 
-class VpotRingAspect(IntFlag):
+class VPotRingAspect(IntFlag):
     ABS_EMPTY = 0x0
     ABS_L5 = 0x1
     ABS_L4 = 0x2

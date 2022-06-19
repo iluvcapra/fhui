@@ -1,7 +1,7 @@
 from typing import List
 from dataclasses import dataclass
 from fhui.small_display import SmallDisplayTarget
-from fhui.vpot import VPotIdent, VPotRingAspect
+from fhui.vpot import VPotIdent, VPotRingAspect 
 
 SYSEX_HEADER = [ 0x00, 0x00, 0x66, 0x05, 0x00 ] 
 
@@ -67,12 +67,12 @@ class FaderPositionUpdate(Message):
 
 def sysex2message(data : List[int]) -> List[Message]:
     retval = list()
-    if data[0] == 0x10 and len(data) == 7:
+    if data[0] == 0x10 and len(data) == 6:
         retval.append(SmallDisplayUpdate(
             ident=SmallDisplayTarget(data[1]),
             data=data[2:6]))
     elif data[0] == 0x12 and len(data) in [12, 23, 34, 45]:
-        for i in range(1,len(data),11)):
+        for i in range(1,len(data),11):
             retval.append(LargeDisplayUpdate(
                 zone=data[i],
                 data=data[i+1:i+11]
@@ -95,8 +95,8 @@ def midi2messages(midi) -> List[Message]:
     elif status == 0x90 and data[0:] == [0x00, 0x7f]:
         return [PingReply()]
 
-    elif status == 0xf0 and data[0:6] == SYSEX_HEADER and data[-1] == 0xf7:
-        return sysex2message( data[ 6 : len(data-1) ] )
+    elif status == 0xf0 and data[0:5] == SYSEX_HEADER and data[-1] == 0xf7:
+        return sysex2message( data[ 5 : len(data) - 1 ] )
 
     elif status == 0xa0 and data[0] & 0xF0 == 0x00 and len(data) == 2:
         return [VUMeterUpdate(
@@ -124,7 +124,7 @@ def midi2messages(midi) -> List[Message]:
             elif data[i] & 0xF0 == 0x00 and ( 0 <= data[i] & 0x0F <= 7):
                 retval.append(FaderPositionUpdate(hi_byte=True, value=data[i]))
             
-            elif data[i] & 0xF0 = 0x20 and (0 <= data[i] & 0x0F <= 7):
+            elif data[i] & 0xF0 == 0x20 and (0 <= data[i] & 0x0F <= 7):
                 retval.append(FaderPositionUpdate(hi_byte=False, value=data[i]))
 
         return retval
@@ -133,4 +133,6 @@ def midi2messages(midi) -> List[Message]:
         return list()
 
 
-def message2midi(message:)
+def message2midi(message: Message) -> List[int]:
+    # to be implemented
+    pass
