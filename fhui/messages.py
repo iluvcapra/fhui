@@ -12,7 +12,7 @@ class MessageConverter:
     def __init__(self):
         self.led_zone = None
     
-    def sysex2update(self, sysex_payload) -> List[MessageUpdate]:
+    def _sysex2update(self, sysex_payload) -> List[MessageUpdate]:
         address, data = sysex_payload[0], sysex_payload[1:]
 
         if address == 0x10:
@@ -24,7 +24,7 @@ class MessageConverter:
         else:
             raise Exception("Unrecognized Sysex message")
     
-    def parse_running_status(self, midi):
+    def _parse_running_status(self, midi):
         
         words = iter(midi)
         retval = list()
@@ -52,7 +52,10 @@ class MessageConverter:
                     retval.append(update)
 
                 elif (note & 0xf0 == 0x00) and (note & 0x0f < 0x08):
-                    pass #fader update
+                    fader_id = note & 0x0f
+                    # fixme continue impl
+                else:
+                    raise Exception("Unexpected MIDI note value %x" % note)
 
             except StopIteration:
                 raise Exception("Unexpected end of MIDI message")
@@ -66,7 +69,7 @@ class MessageConverter:
             #sysex        
             if midi[1:6] == [0x00, 0x00, 0x66, 0x05, 0x00]:
                  #addressed to us
-                return self.sysex2update(midi[6:])
+                return self._sysex2update(midi[6:])
 
         elif status == 0x90:
             # ping 
@@ -75,7 +78,7 @@ class MessageConverter:
             # vu update
             pass
         elif status == 0xb0:
-            self.parse_running_status(midi[1:])
+            self._parse_running_status(midi[1:])
  
         else:
             raise Exeption("Unrecognized MIDI status word %x" % status)
