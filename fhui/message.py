@@ -7,6 +7,7 @@ from fhui.vpot import VPotIdent, VPotRingAspect
 
 SYSEX_HEADER = [ 0x00, 0x00, 0x66, 0x05, 0x00 ] 
 
+
 @dataclass
 class Message:
     pass
@@ -57,6 +58,7 @@ class VUMeterValue(IntEnum):
     GREEN_60  = 0x01
     DARK_60   = 0x00
 
+
 @dataclass 
 class VUMeterUpdate(Message):
     channel: int
@@ -69,6 +71,16 @@ class VPotDisplayUpdate(Message):
     ident: VPotIdent
     aspect: VPotRingAspect 
     
+
+@dataclass
+class VPotRotationUpdate(Message):
+    magnitude: int
+
+
+@dataclass 
+class JogWheelRotationUpdate(Message):
+    magnitude: int
+
 
 @dataclass
 class PortUpdate(Message):
@@ -148,6 +160,12 @@ def midi2messages(midi) -> List[Message]:
             
             elif data[i] & 0xF0 == 0x20 and ( 0 <= data[i] & 0x0F <= 7):
                 retval.append(FaderPositionUpdate(hi_byte=False, value=data[i]))
+
+            elif data[i] & 0xF0 == 0x40 and ( 0 <= data[i] & 0x0F <= 0x0c ):
+                retval.append(VPotRotationUpdate(magnitude=data[1] - 0x40))
+
+            elif data[i] == 0x0d:
+                retval.append(JogWheelRotationUpdate(magnitude=data[1] - 0x40))
 
         return retval
 

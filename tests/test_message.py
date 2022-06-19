@@ -99,5 +99,18 @@ class TestMessageConverter:
         assert m[2] == PortUpdate(port=0x01, state=True)
         assert m[3] == PortUpdate(port=0x02, state=True)
 
+    def test_jog_wheel_update(self):
+
+        data = [0xb0, 0x0d, 0x50]
+        m = midi2messages(data)
+        assert len(m) == 1
+        assert m[0] == JogWheelRotationUpdate(magnitude=16)
+
+    def test_vpot_rotation_update(self):
+
+        data = [0xb0, 0x4a, 0x32]
+        m = midi2messages(data)
+        assert len(m) == 1
+        assert m[0] == VPotRotationUpdate(magnitude=-14)
 
 
