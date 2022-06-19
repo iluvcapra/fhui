@@ -140,8 +140,8 @@ def midi2messages(midi) -> List[Message]:
                 retval.append(ZoneSelectUpdate(zone=data[i+1]))
 
             elif data[i] == 0x2c:
-                state = (data[i+1] & 0xF0) == 0x40
-                retval.append(PortUpdate(port=data[i+1] & 0x0F), state=state)
+                stateval = (data[i+1] & 0xF0) == 0x40
+                retval.append(PortUpdate(port=data[i+1] & 0x0F, state=stateval))
 
             elif data[i] & 0xF0 == 0x00 and ( 0 <= data[i] & 0x0F <= 7):
                 retval.append(FaderPositionUpdate(hi_byte=True, value=data[i]))

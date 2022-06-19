@@ -71,6 +71,33 @@ class TestMessageConverter:
                 ident=VPotIdent.PARAM_3, 
                 aspect=VPotRingAspect.MAG_7)
 
+    def test_port_update(self):
+        data1 = [0xb0, 0x0c, 0x1a]
+        m = midi2messages(data1)
+        assert len(m) == 1
+        assert m[0] == ZoneSelectUpdate(zone=0x1a)
+
+        data2 = [0xb0, 0x2c, 0x42]
+        m = midi2messages(data2)
+        assert len(m) == 1
+        assert m[0] == PortUpdate(port=0x2, state=True)
+
+        data3 = [0xb0, 0x2c, 0x02]
+        m = midi2messages(data3)
+        assert len(m) == 1
+        assert m[0] == PortUpdate(port=0x2, state=False)
+
+    def test_port_running_status(self):
+        data = [0xb0, 0x0c, 0x08, 0x2c, 0x40, 0x2c, 0x41, 0x2c, 0x42]
+
+        m = midi2messages(data)
+
+        assert len(m) == 4
+
+        assert m[0] == ZoneSelectUpdate(zone=0x08)
+        assert m[1] == PortUpdate(port=0x00, state=True)
+        assert m[2] == PortUpdate(port=0x01, state=True)
+        assert m[3] == PortUpdate(port=0x02, state=True)
 
 
 
