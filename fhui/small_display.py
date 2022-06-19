@@ -4,33 +4,44 @@ from enum import IntEnum
 from dataclasses import dataclass
 from typing import List
 
-class SmallDisplay:
-    cell : List[int]
+class SmallDisplayTarget(IntEnum):
+    STRIP_1 = 0x00
+    STRIP_2 = 0x01
+    STRIP_3 = 0x02
+    STRIP_4 = 0x03
+    STRIP_5 = 0x04
+    STRIP_6 = 0x05
+    STRIP_7 = 0x06
+    STRIP_8 = 0x07
+    SELECT_ASSIGN = 0x08
 
-    class Target(IntEnum):
-        STRIP_1 = 0x00
-        STRIP_2 = 0x01
-        STRIP_3 = 0x02
-        STRIP_4 = 0x03
-        STRIP_5 = 0x04
-        STRIP_6 = 0x05
-        STRIP_7 = 0x06
-        STRIP_8 = 0x07
-        SELECT_ASSIGN = 0x08
+# class SmallDisplay:
+#     cell : List[int]
 
-    @dataclass
-    class Update(MessageUpdate):
-        chardata: List[int]
-        target: 'SmallDisplayTarget'
+#     class Target(IntEnum):
+#         STRIP_1 = 0x00
+#         STRIP_2 = 0x01
+#         STRIP_3 = 0x02
+#         STRIP_4 = 0x03
+#         STRIP_5 = 0x04
+#         STRIP_6 = 0x05
+#         STRIP_7 = 0x06
+#         STRIP_8 = 0x07
+#         SELECT_ASSIGN = 0x08
 
-        @classmethod
-        def from_midi(cls, data) -> List['Update']:
-            address = SmallDisplay.Target(data[0])
-            if address is None:
-                raise Exception("Unrecognized small character display ID")
+#     @dataclass
+#     class Update(MessageUpdate):
+#         chardata: List[int]
+#         target: 'SmallDisplayTarget'
 
-            retval = cls(target=address, chardata=data[1:5])
+#         @classmethod
+#         def from_midi(cls, data) -> List['Update']:
+#             address = SmallDisplay.Target(data[0])
+#             if address is None:
+#                 raise Exception("Unrecognized small character display ID")
 
-            return [retval]
+#             retval = cls(target=address, chardata=data[1:5])
+
+#             return [retval]
 
 
