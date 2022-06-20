@@ -99,7 +99,7 @@ class FaderPositionUpdate(Message):
     value: int
 
 
-def sysex2message(data : List[int]) -> List[Message]:
+def _sysex2message(data : List[int]) -> List[Message]:
     retval = list()
     if data[0] == 0x10 and len(data) == 6:
         retval.append(SmallDisplayUpdate(
@@ -130,7 +130,7 @@ def midi2messages(midi) -> List[Message]:
         return [PingReply()]
 
     elif status == 0xf0 and data[0:5] == SYSEX_HEADER and data[-1] == 0xf7:
-        return sysex2message( data[ 5 : len(data) - 1 ] )
+        return _sysex2message( data[ 5 : len(data) - 1 ] )
 
     elif status == 0xa0 and data[0] & 0xF0 == 0x00 and len(data) == 2:
         return [VUMeterUpdate(
