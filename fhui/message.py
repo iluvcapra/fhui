@@ -74,6 +74,7 @@ class VPotDisplayUpdate(Message):
 
 @dataclass
 class VPotRotationUpdate(Message):
+    ident: VPotIdent
     magnitude: int
 
 
@@ -96,6 +97,7 @@ class ZoneSelectUpdate(Message):
 @dataclass
 class FaderPositionUpdate(Message):
     hi_byte: bool
+    zone: int
     value: int
 
 
@@ -117,7 +119,7 @@ def _sysex2message(data : List[int]) -> List[Message]:
     return retval
 
 
-def midi2messages(midi) -> List[Message]:
+def midi2messages(midi: List[int]) -> List[Message]:
     """
     Accept one midi message of the form (status, byte, byte...)
     """
@@ -156,13 +158,13 @@ def midi2messages(midi) -> List[Message]:
                 retval.append(PortUpdate(port=data[i+1] & 0x0F, state=stateval))
 
             elif data[i] & 0xF0 == 0x00 and ( 0 <= data[i] & 0x0F <= 7):
-                retval.append(FaderPositionUpdate(hi_byte=True, value=data[i]))
+                retval.append(FaderPositionUpdate(hi_byte=True, zone=data[i] & 0x0F, value=data[i]))
             
             elif data[i] & 0xF0 == 0x20 and ( 0 <= data[i] & 0x0F <= 7):
-                retval.append(FaderPositionUpdate(hi_byte=False, value=data[i]))
+                retval.append(FaderPositionUpdate(hi_byte=False, zone=data[i] * 0x0F, value=data[i]))
 
             elif data[i] & 0xF0 == 0x40 and ( 0 <= data[i] & 0x0F <= 0x0c ):
-                retval.append(VPotRotationUpdate(magnitude=data[1] - 0x40))
+                retval.append(VPotRotationUpdate(ident=data[i] & 0x0F, magnitude=data[1] - 0x40),)
 
             elif data[i] == 0x0d:
                 retval.append(JogWheelRotationUpdate(magnitude=data[1] - 0x40))
@@ -174,7 +176,30 @@ def midi2messages(midi) -> List[Message]:
 
 
 def message2midi(message: Message) -> List[int]:
-    # to be implemented
-    pass
-
+    if type(message) == Ping:
+        return [0x90, 0x00, 0x00]
+    elif type(message) == PingReply:
+        return [0x90, 0x00, 0x7f]
+    elif type(message) == SmallDisplayUpdate:
+        return [0xf0] + SYSEX_HEADER + [0x10 , message.ident.value] + message.data[0:4] + [0xf7]
+    elif type(message) == LargeDisplayUpdate:
+        return [0xf0] + SYSEX_HEADER + [0x12 , message.zone ] + message.data[0:12] + [0xf7]
+    elif type(message) == TimecodeDisplayUpdate:
+        return [0xf0] + SYSEX_HEADER + [0x11] + message.data + [0xf7]
+    elif type(message) == VUMeterUpdate:
+        return [0xa0 , message.channel.value & 0x0F , message.side.value & 0x0F ^ (message.value.value & 0x0F) << 8]
+    elif type(message) == VPotDisplayUpdate:
+        return [0xb0 , message.ident.value & 0x0F, message.aspect.value]
+    elif type(message) == ZoneSelectUpdate:
+        return [0xb0, 0x0c, message.zone]
+    elif type(message) == PortUpdate:
+        if message.state:
+            return [0xb0, 0x40, message.port]
+        else:
+            return [0xb0, 0x00, message.port]
+    elif type(message) == FaderPositionUpdate:
+        if message.hi_byte:
+            pass
+        else:
+            pass
 

@@ -111,6 +111,6 @@ class TestMessageConverter:
         data = [0xb0, 0x4a, 0x32]
         m = midi2messages(data)
         assert len(m) == 1
-        assert m[0] == VPotRotationUpdate(magnitude=-14)
+        assert m[0] == VPotRotationUpdate(ident=VPotIdent.PARAM_3 , magnitude=-14)
 
 
