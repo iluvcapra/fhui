@@ -194,12 +194,17 @@ def message2midi(message: Message) -> List[int]:
         return [0xb0, 0x0c, message.zone]
     elif type(message) == PortUpdate:
         if message.state:
-            return [0xb0, 0x40, message.port]
+            return [0xb0, 0x2c, 0x40 ^ message.port]
         else:
-            return [0xb0, 0x00, message.port]
+            return [0xb0, 0x2c, 0x00 ^ message.port]
     elif type(message) == FaderPositionUpdate:
         if message.hi_byte:
-            pass
+            return [0xb0, 0x00 ^ message.zone, message.value ]
         else:
-            pass
+            return [0xb0, 0x20 ^ message.zone, message.value ]
+    elif type(message) == VPotRotationUpdate:
+        return [0xb0, message.ident.value & 0x0F, message.magnitude + 0x40]
+    elif type(message) == JogWheelRotationUpdate:
+        return [0xb0, 0x0d, message.magnitude + 0x40]
+
 
