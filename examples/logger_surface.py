@@ -146,8 +146,8 @@ class Logger(SurfaceDelegate):
         log_out("[DISP] Small display %s \"%s\"" % (ident, text))
 
     def main_display_changed(self, surface, zone: int, text: str):
-        log_out("[MAIN] 1: \"%s\"" % surface.main_display.line1())
-        log_out("[MAIN] 2: \"%s\"" % surface.main_display.line2())
+        log_out("[MAIN] 1: \"%s\"" % surface.main_display.line1)
+        log_out("[MAIN] 2: \"%s\"" % surface.main_display.line2)
 
     def unrecognized_message(self, surface, message: mido.Message):
         log_out("[WARN] Unrecognized message: %s" % message)

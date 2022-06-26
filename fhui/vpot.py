@@ -154,7 +154,7 @@ class VPotRingAspect(IntFlag):
         
 
         rep = "|"
-        for i in range(11,0,-1):
+        for i in reversed(range(11)):
             mask = 0x01 << i
             if (leds & mask > 0x00):
                 rep += "*"

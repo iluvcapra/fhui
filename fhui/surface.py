@@ -7,6 +7,7 @@ from fhui.main_display import MainDisplay
 from fhui.small_display import SmallDisplayTarget
 from fhui.time_display import TimeDisplay
 from fhui.charsets import SmallDisplayCharSet, LargeDisplayCharSet
+from fhui.vu_meters import VuMeterLevel, VuMeterSide
 
 from time import monotonic
 
@@ -27,6 +28,10 @@ class SurfaceDelegate:
         pass
     
     def vpot_changed(self, surface, ident: VPotIdent, new_state: VPotRingAspect):
+        pass
+    
+    def vu_meter_changed(self, surface, channel_id: int, 
+            side: VuMeterSide, level: VuMeterLevel):
         pass
 
     def time_display_changed(self, surface, new_value: TimeDisplay):
@@ -65,12 +70,13 @@ class Surface:
             self.fader_state[fader_id][0] = value & 0x7f
         elif order == 'lo':
             self.fader_state[fader_id][1] = value & 0x7f
+        
+        hi, lo = self.fader_state[fader_id][0], self.fader_state[fader_id][1]
 
-        for e in range(len(self.fader_state)):
-            if self.fader_state[e][0] and self.fader_state[e][1]:
-                position = (self.fader_state[e][0] << 7) ^ (self.fader_state[e][1])
-                self.delegate.fader_moved(self, fader_id, position)
-                self.fader_state[e] = [None, None]
+        if hi and lo:
+            position = (hi << 7) ^ lo
+            self.delegate.fader_moved(self, fader_id, position)
+            self.fader_state[fader_id] = [None, None]
 
     def _handle_control_change_message(self, message):
         if message.control == 0x0c:
@@ -124,6 +130,13 @@ class Surface:
 
         else:
             self.delegate.unrecognized_message(self, message)
+    
+    def _handle_vu(self, message):
+        channel = message.channel & 0xf0
+        side = (message.value & 0xf0) >> 8
+        value = message.value & 0x0f
+        self.delegate.vu_meter_changed(self, channel, 
+                VuMeterSide(side), VuMeterLevel(value))
 
     def run(self):
 
