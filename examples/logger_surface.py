@@ -23,13 +23,16 @@ import codecs
 
 import fileinput
 
+
 DEFAULT_MIDI_IN_RX=r'^.*HUI In$'
 DEFAULT_MIDI_OUT_RX=r'^.*HUI Out$'
+
 
 if not pygame.midi.get_init():
     pygame.midi.init()
 
 script_start = now()
+
 
 def log_out(m):
     print("%s (%f): %s" % (strftime("%H:%M:%S"), now() - script_start, m))
@@ -45,10 +48,12 @@ def print_endpoint(index: int):
 
     log_out("[INFO] %i - %s : %s (%s)" % (index, codecs.decode(f, 'utf8'), codecs.decode(n, 'utf8'), dirn))
 
+
 def iterate_endpoints():
     for i in range(pygame.midi.get_count()):
         f, n, xi, xo, op = pygame.midi.get_device_info(i)
         yield (i, codecs.decode(f, 'utf8'), codecs.decode(n, 'utf8'), xi, xo, op)
+
 
 def list_endpoints():
     log_out("Inputs:")
@@ -61,6 +66,7 @@ def list_endpoints():
     for index, interface, name, is_input, is_output, is_open in iterate_endpoints():
         if is_output == 1:
             log_out("%i - %s : %s" % (index, interface, name))
+
 
 def get_default_input():
     port = None
