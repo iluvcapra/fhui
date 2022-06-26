@@ -1,5 +1,4 @@
 from enum import IntEnum, unique
-from fhui.message_update import MessageUpdate
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -250,8 +249,11 @@ class ZonePort(IntEnum):
     UTIL_BEEPER     = 0x1d03
 
     @classmethod
-    def from_zone_port(cls, zone: int, port: int) -> 'ZonePort':
-        return cls( (zone & 0xF0 << 8) ^ ( port & 0x0F ))
+    def from_zone_port(cls, zone: int, port: int) -> Optional['ZonePort']:
+        if zone < 0x1e and port < 0x07:
+            return cls( (zone << 8) ^ ( port & 0x0F ))
+        else: 
+            return None
 
     @property
     def zone(self):
@@ -261,10 +263,3 @@ class ZonePort(IntEnum):
     def port(self):
         return (self.value & 0x0F)
 
-
-class ZonePort:
-
-    @dataclass
-    class Update(MessageUpdate):
-        port: ZonePort
-        led_state: bool

@@ -1,5 +1,13 @@
 import pygame.midi
-# from fhui.surface import Surface
+
+import sys
+sys.path.insert(0, '.')
+
+from enum import Enum
+
+from fhui.charsets import LargeDisplayCharSet, SmallDisplayCharSet
+from fhui.zones import ZonePort
+from fhui.vpot import VPotIdent, VPotRingAspect
 
 import mido
 
@@ -14,7 +22,6 @@ import fileinput
 DEFAULT_MIDI_IN_RX=r'^.*HUI In$'
 DEFAULT_MIDI_OUT_RX=r'^.*HUI Out$'
 
-
 if not pygame.midi.get_init():
     pygame.midi.init()
 
@@ -22,6 +29,7 @@ script_start = now()
 
 def log_out(m):
     print("%s (%f): %s" % (strftime("%H:%M:%S"), now() - script_start, m))
+
 
 def print_endpoint(index: int):
     f, n, xi, xo, op = pygame.midi.get_device_info(index)
@@ -68,6 +76,12 @@ def get_default_output():
     return port
 
 
+class LogLevels(Enum):
+    DEBUG = 5
+    NORMAL = 3
+    ERRORS = 1
+
+
 parser = OptionParser()
 
 
@@ -90,9 +104,13 @@ group.add_option("-o", "--output-id", dest="output_id",
 
 parser.add_option_group(group)
 
+parser.add_option("-p", dest="print_pings", action='store_true', 
+        help="Report ping responses", 
+        default=False)
+
 
 class LoggerSurface():
-    def __init__(self, midi_input, midi_output):
+    def __init__(self, midi_input, midi_output, print_ping):
         self.midi_in = midi_input
         self.midi_out = midi_output
         self.parser = mido.Parser()
@@ -100,8 +118,9 @@ class LoggerSurface():
         self.ping_timeout = 2.0
         self.led_zone = None
         self.fader_state = [[None,None]] * 8
+        self.print_ping = print_ping
 
-    def update_fader_state(self, order: str, fader_id: int, value: int):
+    def _update_fader_state(self, order: str, fader_id: int, value: int):
         if order == 'hi':
             self.fader_state[fader_id][0] = value & 0x7f
         elif order == 'lo':
@@ -113,23 +132,30 @@ class LoggerSurface():
                 log_out("Fader 0x%x set to new position 0x%x" % (e, position))
                 self.fader_state[e] = [None, None]
 
-    def handle_control_change_message(self, message):
+    def _handle_control_change_message(self, message):
         if message.control == 0x0c:
             self.led_zone = message.value
         elif message.control == 0x2c:
-            if message.value & 0xf0 == 0x40:
-                log_out("Zone 0x%x port 0x%x new state ON" % (self.led_zone, message.value & 0x0f))
+            zoneport = ZonePort.from_zone_port(self.led_zone, message.value & 0x0f)
+            if zoneport is None:
+                log_out("Unrecognized zone 0x%x port 0x%x" % (self.led_zone, message.value & 0x0f))
+            elif message.value & 0xf0 == 0x40:
+                log_out("LED %s new state ON" % (zoneport, ))
             elif message.value & 0xf0 == 0x00:
-                log_out("Zone 0x%x port 0x%x new state OFF" % (self.led_zone, message.value & 0x0f))
+                log_out("LED %s new state OFF" % (zoneport, ))
+            else:
+                log_out("Unregonzied control change message: %s" % message)
         elif message.control & 0xf0 == 0x10:
-            log_out("VPot Indicator 0x%x set to new state %x" % 
-                    (message.control & 0x0f, message.value))
+            vpot_ident = VPotIdent(message.control & 0x0f)
+            vpot_value = VPotRingAspect(message.value)
+            log_out("VPot %s %s " % 
+                    (vpot_ident , vpot_value.led_string()))
         elif message.control & 0x0f < 0x08:
             fader_id = message.control & 0x0F
             if message.control & 0xf0 == 0x00:
-                self.update_fader_state('hi', fader_id, message.value)
+                self._update_fader_state('hi', fader_id, message.value)
             elif message.control & 0xf0 == 0x20:
-                self.update_fader_state('lo', fader_id, message.value)
+                self._update_fader_state('lo', fader_id, message.value)
             else:
                 log_out(message)
 
@@ -137,21 +163,23 @@ class LoggerSurface():
             log_out(message)
 
 
-    def handle_sysex(self, message):
+    def _handle_sysex(self, message):
         if message.data[0:5] != (0x00, 0x00, 0x66, 0x05, 0x00):
             print(message.data[0:5])
             log_out("Non-HUI Sysex message: %s" % message)        
         elif message.data[5] == 0x10:
-            log_out("Small display update Zone 0x%x" % (message.data[6]))
+            text = SmallDisplayCharSet.decode(message.data[7:])
+            log_out("Small display update Zone 0x%x \"%s\"" % (message.data[6], text))
         elif message.data[5] == 0x11:
             log_out("Timecode update")
         elif message.data[5] == 0x12:
-            log_out("Large display update Zone 0x%x" % (message.data[6]))
+            text = LargeDisplayCharSet.decode(message.data[7:])
+            log_out("Large display update Zone 0x%x \"%s\"" % (message.data[6], text))
         else:
             log_out("Unrecognized HUI sysex: %s" % message)
 
 
-    def handle_vu(self, message):
+    def _handle_vu(self, message):
         channel = message.channel & 0xf0
         side = (message.value & 0xf0) >> 8
         value = message.value & 0x0f
@@ -175,20 +203,21 @@ class LoggerSurface():
             
             if message.type == 'note_off':
                 if message.channel == 0 and message.velocity == 0x40:
-                    log_out("Responding to host ping")
+                    if self.print_ping:
+                        log_out("Responding to host ping")
                     self.since_last_ping = now()
                     self.midi_out.write_short(0x90, 0x00, 0x7f)
                 else:
                     log_out(message)
 
             elif message.is_cc():
-                self.handle_control_change_message(message)
+                self._handle_control_change_message(message)
  
             elif message.type == 'sysex':
-                self.handle_sysex(message)
+                self._handle_sysex(message)
 
             elif message.type == 'polytouch':
-                self.handle_vu(message)
+                self._handle_vu(message)
             else:
                 log_out(message)
 
@@ -221,8 +250,8 @@ if __name__ == '__main__':
     midi_in = pygame.midi.Input(options.input_id)
     midi_out = pygame.midi.Output(options.output_id)
     
-
-    surface = LoggerSurface(midi_input=midi_in, midi_output=midi_out)
+    surface = LoggerSurface(midi_input=midi_in, midi_output=midi_out, 
+            print_ping= options.print_pings)
     
     log_out("Sending system reset '0xFF'")
     midi_out.write([ [[0xff], pygame.midi.time()] ] )
