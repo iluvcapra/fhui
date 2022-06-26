@@ -2,6 +2,8 @@ from typing import List
 from dataclasses import dataclass
 from enum import IntEnum
 
+from mido import Message as MidoMessage
+
 from fhui.small_display import SmallDisplayTarget
 from fhui.vpot import VPotIdent, VPotRingAspect 
 
@@ -124,8 +126,12 @@ def midi2messages(midi: List[int]) -> List[Message]:
     Accept one midi message of the form (status, byte, byte...)
     """
     status, data = midi[0], midi[1:]
-        
+       
+    print("midi is ", midi)
     if status == 0x90 and data[0:] == [0x00, 0x00]:
+        return [Ping()]
+
+    elif status == 0x80 and data[0:] == [0x00, 0x40]:
         return [Ping()]
 
     elif status == 0x90 and data[0:] == [0x00, 0x7f]:

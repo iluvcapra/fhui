@@ -6,7 +6,7 @@ setup(
     description='Mackie HUI control surface emuolation',
     author='Jamie Hardt',
     license='MIT',
-    install_requires='pygame',
+    install_requires=['pygame', 'mido'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest'],
     test_suite='tests',

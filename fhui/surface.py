@@ -1,4 +1,5 @@
 from pygame.midi import Input, Output
+from pygame.midi import time as midi_time
 from fhui.message import *
 
 class Surface:
@@ -26,18 +27,23 @@ class Surface:
         for m in midis:
             print("Received midi: status=%0x, byte1=%0x, byte2=%0x" % 
                     (m[0][0], m[0][1], m[0][2]))
-            message = midi2messages(m[0])
-            messages.append(midi2messages(m[0]))
+            if m[0][0] == 0xf0:
+                continue
+
+            message = midi2messages(m[0][0:3])
+            if len(message) > 0:
+                messages.append(message[0])
+
             print("Converted to: %s" % message)
         
         for message in messages:
             if type(message) is Ping:
                 print("Received ping")
-                self.reply_to_ping()
+                self.ping_reply()
 
-    def write_now(self, data):
-        now = pygame.midi.time()
-        self.midi_output.write([data, now])
+    def write_now(self, data : List[int]):
+        now = midi_time()
+        self.midi_output.write([[data, now]])
 
     def ping_reply(self):
         # print("Replying to ping")

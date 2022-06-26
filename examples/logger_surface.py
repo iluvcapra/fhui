@@ -1,5 +1,7 @@
 import pygame.midi
-from fhui.surface import Surface
+# from fhui.surface import Surface
+
+import mido
 
 from optparse import OptionParser, OptionGroup
 import sys
@@ -74,8 +76,47 @@ group.add_option("-o", "--output-id", dest="output_id",
 parser.add_option_group(group)
 
 
-class LoggerSurface(Surface):
-    pass
+class LoggerSurface():
+    def __init__(self, midi_input, midi_output):
+        self.midi_in = midi_input
+        self.midi_out = midi_output
+        self.parser = mido.Parser() 
+
+    def run(self):
+
+        packets = []
+        if self.midi_in.poll():
+            packets = self.midi_in.read(1024)
+
+        for packet in packets:
+            event = packet[0]
+            at_time = packet[1] 
+            self.parser.feed(event)
+
+        for message in self.parser:
+            
+            if message.type == 'note_off':
+                if message.channel == 0 and message.velocity == 0x40:
+                    print("responding to ping")
+                    self.midi_out.write_short(0x90, 0x00, 0x7f)
+                else:
+                    print(message)
+
+            elif message.type == 'control_change':
+                if message.control == 0x0c:
+                    print("Zone Select %x" % message.value)
+                elif message.control == 0x2c:
+                    if message.value & 0xf0 == 0x40:
+                        print("Port %x new state ON" % (message.value & 0x0f))
+                    elif message.value & 0xf0 == 0x00:
+                        print("Port %x new state OFF" % (message.value & 0x0f))
+                else:
+                    print(message)
+ 
+            else:
+                print(message)
+
+
 
 
 if __name__ == '__main__':
@@ -94,15 +135,15 @@ if __name__ == '__main__':
         print("FATAL: MIDI Output port not selected")
         exit(-1)
 
-    midi_in = pygame.midi.Input(options.input_id, 512)
-    
-    midi_out = pygame.midi.Output(options.output_id, 512)
-
+    midi_in = pygame.midi.Input(options.input_id)
+    midi_out = pygame.midi.Output(options.output_id)
     surface = LoggerSurface(midi_input=midi_in, midi_output=midi_out)
-
+    
+    midi_out.write([ [[0xff, 0xff, 0xff], pygame.midi.time()] ] )
+    
     while True:
         surface.run()
-        sleep(0.1)
+        sleep(0.05)
 
 
 
