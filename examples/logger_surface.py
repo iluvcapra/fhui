@@ -21,7 +21,6 @@ import re
 from time import sleep, monotonic as now, strftime
 import codecs
 
-import fileinput
 
 
 DEFAULT_MIDI_IN_RX=r'^.*HUI In$'
@@ -114,10 +113,6 @@ group.add_option("-o", "--output-id", dest="output_id",
 
 parser.add_option_group(group)
 
-parser.add_option("-p", dest="print_pings", action='store_true', 
-        help="Report ping responses", 
-        default=False)
-
 
 class Logger(SurfaceDelegate):
 
@@ -138,6 +133,9 @@ class Logger(SurfaceDelegate):
     
     def vpot_changed(self, surface, ident: VPotIdent, new_state: VPotRingAspect):
         log_out("[VPOT] %s changed to %s." % (ident, new_state.led_string()))
+    
+    def vu_meter_changed(self, surface, channel_id, side, level):
+        log_out("[VU] %i %s %s" % (channel_id, side, level))
 
     def time_display_changed(self, surface, new_value: TimeDisplay):
         log_out("[TIME] %s" % (surface.time_display.display_string()))
@@ -149,8 +147,10 @@ class Logger(SurfaceDelegate):
         log_out("[MAIN] 1: \"%s\"" % surface.main_display.line1)
         log_out("[MAIN] 2: \"%s\"" % surface.main_display.line2)
 
-    def unrecognized_message(self, surface, message: mido.Message):
+    def unrecognized_message(self, surface, message: mido.Message, info=None):
         log_out("[WARN] Unrecognized message: %s" % message)
+        if info:
+            log_out("[WARN] %s" % info)
         
 
 if __name__ == '__main__':

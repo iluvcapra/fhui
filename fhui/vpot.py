@@ -157,16 +157,16 @@ class VPotRingAspect(IntFlag):
         for i in reversed(range(11)):
             mask = 0x01 << i
             if (leds & mask > 0x00):
-                rep += "*"
+                rep += "▮"
             else:
-                rep += " "
+                rep += "▯"
 
         rep += "|"
 
         if self.center_led_value():
-            rep += " (*)"
+            rep += " ●"
         else:
-            rep += " ( )"
+            rep += " ○"
 
         return rep
 

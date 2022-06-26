@@ -1,4 +1,5 @@
 from pygame.midi import Input as MidiInput, Output as MidiOutput, time as midi_time
+import pygame.midi
 import mido
 
 from fhui.zones import ZonePort
@@ -10,6 +11,10 @@ from fhui.charsets import SmallDisplayCharSet, LargeDisplayCharSet
 from fhui.vu_meters import VuMeterLevel, VuMeterSide
 
 from time import monotonic
+
+
+if not pygame.midi.get_init():
+    pygame.midi.init()
 
 class SurfaceDelegate:
     def go_offline(self, surface):
@@ -43,7 +48,7 @@ class SurfaceDelegate:
     def main_display_changed(self, surface, zone: int, text: str):
         pass
 
-    def unrecognized_message(self, surface, message: mido.Message):
+    def unrecognized_message(self, surface, message: mido.Message, info=None):
         pass
 
 
@@ -85,13 +90,15 @@ class Surface:
         elif message.control == 0x2c:
             zoneport = ZonePort.from_zone_port(self.led_zone, message.value & 0x0f)
             if zoneport is None:
-                self.delegate.unrecognized_message(self, message)
+                self.delegate.unrecognized_message(self, message, 
+                        info="Zone: 0x%x - Port: 0x%x" % (self.led_zone,message.value))
             elif message.value & 0xf0 == 0x40:
                 self.delegate.led_changed(self, zoneport, True)
             elif message.value & 0xf0 == 0x00:
                 self.delegate.led_changed(self, zoneport, False)
             else:
-                self.delegate.unrecognized_message(self, message)
+                self.delegate.unrecognized_message(self, message,
+                        info="Zone: 0x%x - Port: 0x%x" % (self.led_zone,message.value))
 
         elif message.control & 0xf0 == 0x10:
             vpot_ident = VPotIdent(message.control & 0x0f)
@@ -180,4 +187,15 @@ class Surface:
     def send_reset(self):
         self.midi_out.write([ [[0xff], midi_time()] ] )
 
+    def key_down(self, key: ZonePort, at=midi_time()):
+        zone_select = mido.Message('control_change', channel=0, control=0x0f, value=key.zone)
+        port = mido.Message('control_change', channel=0, control=0x2f, value=0x40 ^ key.port)
+        self.midi_out.write([[zone_select.bin(), at]])
+        self.midi_out.write([[port.bin(), at]])
+
+    def key_up(self, key:ZonePort, at=midi_time()):
+        zone_select = mido.Message('control_change', channel=0, control=0x0f, value=key.zone)
+        port = mido.Message('control_change', channel=0, control=0x2f, value=key.port)
+        self.midi_out.write([[zone_select.bin(), at]])
+        self.midi_out.write([[port.bin(), at]])
 
