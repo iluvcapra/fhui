@@ -16,7 +16,7 @@ class MainDisplay:
     def update(self, zone: int, data: str):
         start = zone * 10
         for i in range(10):
-            self._buffer[i + start] = data.get(i, " ")
+            self._buffer[i + start] = data[i]
 
     def display_string(self):
         return self.line1 + "\n" + self.line2
