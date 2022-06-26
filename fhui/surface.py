@@ -1,8 +1,9 @@
-from pygame.midi import Input as MidiInput, Output as MidiOutput
+from pygame.midi import Input as MidiInput, Output as MidiOutput, time as midi_time
 import mido
 
 from fhui.zones import ZonePort
 from fhui.vpot import VPotRingAspect, VPotIdent
+from fhui.main_display import MainDisplay
 from fhui.small_display import SmallDisplayTarget
 from fhui.time_display import TimeDisplay
 from fhui.charsets import SmallDisplayCharSet, LargeDisplayCharSet
@@ -40,6 +41,7 @@ class SurfaceDelegate:
     def unrecognized_message(self, surface, message: mido.Message):
         pass
 
+
 class Surface:
     def __init__(self, midi_input: MidiInput, midi_output: MidiOutput, 
             delegate: SurfaceDelegate):
@@ -51,7 +53,7 @@ class Surface:
         self.parser = mido.Parser()
         self.ping_timeout = 2.0
 
-        self.online = False
+        self.online = True
         self.led_zone = None
         self.fader_state = [[None,None]] * 8
 
@@ -162,6 +164,7 @@ class Surface:
             else:
                 self.delegate.unrecognized_message(self,message)
 
-        return True
+    def send_reset(self):
+        self.midi_out.write([ [[0xff], midi_time()] ] )
 
 

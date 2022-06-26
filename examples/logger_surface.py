@@ -5,10 +5,13 @@ sys.path.insert(0, '.')
 
 from enum import Enum
 
-from fhui.charsets import LargeDisplayCharSet, SmallDisplayCharSet
 from fhui.zones import ZonePort
-from fhui.vpot import VPotIdent, VPotRingAspect
+from fhui.vpot import VPotRingAspect, VPotIdent
+from fhui.main_display import MainDisplay
+from fhui.small_display import SmallDisplayTarget
 from fhui.time_display import TimeDisplay
+from fhui.charsets import SmallDisplayCharSet, LargeDisplayCharSet
+from fhui.surface import SurfaceDelegate, Surface
 
 import mido
 
@@ -40,7 +43,7 @@ def print_endpoint(index: int):
     else:
         dirn = "OUT"
 
-    log_out("%i - %s : %s (%s)" % (index, codecs.decode(f, 'utf8'), codecs.decode(n, 'utf8'), dirn))
+    log_out("[INFO] %i - %s : %s (%s)" % (index, codecs.decode(f, 'utf8'), codecs.decode(n, 'utf8'), dirn))
 
 def iterate_endpoints():
     for i in range(pygame.midi.get_count()):
@@ -110,120 +113,39 @@ parser.add_option("-p", dest="print_pings", action='store_true',
         default=False)
 
 
-class LoggerSurface():
-    def __init__(self, midi_input, midi_output, print_ping):
-        self.midi_in = midi_input
-        self.midi_out = midi_output
-        self.parser = mido.Parser()
-        self.since_last_ping = now()
-        self.ping_timeout = 2.0
-        self.led_zone = None
-        self.fader_state = [[None,None]] * 8
-        self.print_ping = print_ping
-        self.time_display = TimeDisplay()
+class Logger(SurfaceDelegate):
 
-    def _update_fader_state(self, order: str, fader_id: int, value: int):
-        if order == 'hi':
-            self.fader_state[fader_id][0] = value & 0x7f
-        elif order == 'lo':
-            self.fader_state[fader_id][1] = value & 0x7f
+    def go_offline(self, surface):
+        log_out("[STATUS] Surface OFF-LINE.")
 
-        for e in range(len(self.fader_state)):
-            if self.fader_state[e][0] and self.fader_state[e][1]:
-                position = (self.fader_state[e][0] << 7) ^ (self.fader_state[e][1])
-                log_out("Fader 0x%x set to new position 0x%x" % (e, position))
-                self.fader_state[e] = [None, None]
+    def go_online(self, surface):
+        log_out("[STATUS] Surface ON-LINE.")
 
-    def _handle_control_change_message(self, message):
-        if message.control == 0x0c:
-            self.led_zone = message.value
-        elif message.control == 0x2c:
-            zoneport = ZonePort.from_zone_port(self.led_zone, message.value & 0x0f)
-            if zoneport is None:
-                log_out("Unrecognized zone 0x%x port 0x%x" % (self.led_zone, message.value & 0x0f))
-            elif message.value & 0xf0 == 0x40:
-                log_out("LED %s new state ON" % (zoneport, ))
-            elif message.value & 0xf0 == 0x00:
-                log_out("LED %s new state OFF" % (zoneport, ))
-            else:
-                log_out("Unrecognzied control change message: %s" % message)
-        elif message.control & 0xf0 == 0x10:
-            vpot_ident = VPotIdent(message.control & 0x0f)
-            vpot_value = VPotRingAspect(message.value)
-            log_out("VPot %s %s " % 
-                    (vpot_ident , vpot_value.led_string()))
-        elif message.control & 0x0f < 0x08:
-            fader_id = message.control & 0x0F
-            if message.control & 0xf0 == 0x00:
-                self._update_fader_state('hi', fader_id, message.value)
-            elif message.control & 0xf0 == 0x20:
-                self._update_fader_state('lo', fader_id, message.value)
-            else:
-                log_out(message)
+    def ping_received(self, surface):
+        log_out("[PING] Received ping from host.")
 
-        else: 
-            log_out(message)
+    def fader_moved(self, surface, fader_id: int, new_value: int):
+        log_out("[FADER] Fader %x moved to position %x." % (fader_id, new_value))
 
+    def led_changed(self, surface, led: ZonePort, new_state: bool):
+        log_out("[LED] %s %s." % (led, "ON" if new_state else "OFF"))
+    
+    def vpot_changed(self, surface, ident: VPotIdent, new_state: VPotRingAspect):
+        log_out("[VPOT] %s changed to %s." % (ident, new_state.led_string()))
 
-    def _handle_sysex(self, message):
-        if message.data[0:5] != (0x00, 0x00, 0x66, 0x05, 0x00):
-            print(message.data[0:5])
-            log_out("Non-HUI Sysex message: %s" % message)        
-        elif message.data[5] == 0x10:
-            text = SmallDisplayCharSet.decode(message.data[7:])
-            log_out("Small display update Zone 0x%x \"%s\"" % (message.data[6], text))
-        elif message.data[5] == 0x11:
-            self.time_display.update(message.data[6:])
-            log_out("Time display updated: %s" % self.time_display.display_string())
-        elif message.data[5] == 0x12:
-            text = LargeDisplayCharSet.decode(message.data[7:])
-            log_out("Large display update Zone 0x%x \"%s\"" % (message.data[6], text))
-        else:
-            log_out("Unrecognized HUI sysex: %s" % message)
+    def time_display_changed(self, surface, new_value: TimeDisplay):
+        log_out("[TIME] %s" % (surface.time_display.display_string()))
 
+    def small_display_changed(self, surface, ident: SmallDisplayTarget, text: str):
+        log_out("[DISP] Small display %s \"%s\"" % (ident, text))
 
-    def _handle_vu(self, message):
-        channel = message.channel & 0xf0
-        side = (message.value & 0xf0) >> 8
-        value = message.value & 0x0f
-        log_out("VU Meter update, zone 0x%x side 0x%x value 0x%x" % (channel, side, value))
+    def main_display_changed(self, surface, zone: int, text: str):
+        log_out("[MAIN] 1: \"%s\"" % surface.main_display.line1())
+        log_out("[MAIN] 2: \"%s\"" % surface.main_display.line2())
 
-    def run(self) -> bool:
-        if now() - self.since_last_ping > self.ping_timeout:
-            log_out("Host ping not received within timeout (%f secs). Going OFFLINE." % (self.ping_timeout))
-            return False
-
-        packets = []
-        if self.midi_in.poll():
-            packets = self.midi_in.read(1024)
-
-        for packet in packets:
-            event = packet[0]
-            at_time = packet[1] 
-            self.parser.feed(event)
-
-        for message in self.parser:
-            if message.type == 'note_off':
-                if message.channel == 0 and message.velocity == 0x40:
-                    if self.print_ping:
-                        log_out("Responding to host ping")
-                    self.since_last_ping = now()
-                    self.midi_out.write_short(0x90, 0x00, 0x7f)
-                else:
-                    log_out(message)
-
-            elif message.is_cc():
-                self._handle_control_change_message(message)
- 
-            elif message.type == 'sysex':
-                self._handle_sysex(message)
-
-            elif message.type == 'polytouch':
-                self._handle_vu(message)
-            else:
-                log_out(message)
-
-        return True
+    def unrecognized_message(self, surface, message: mido.Message):
+        log_out("[WARN] Unrecognized message: %s" % message)
+        
 
 if __name__ == '__main__':
 
@@ -234,39 +156,40 @@ if __name__ == '__main__':
         exit(0)
 
     if options.input_id is None:
-        log_out("FATAL: MIDI Input port not selected")
+        log_out("[FATAL] MIDI Input port not selected")
         exit(-1)
 
     if options.output_id is None:
-        log_out("FATAL: MIDI Output port not selected")
+        log_out("[FATAL] MIDI Output port not selected")
         exit(-1)
 
-    log_out("Beginning run %s" % strftime("%a, %d %b %Y %H:%M:%S"))
+    log_out("[INFO] Beginning run %s" % strftime("%a, %d %b %Y %H:%M:%S"))
 
-    log_out("Creating MIDI connections...")
-    log_out("MIDI input:")
+    log_out("[INFO] Creating MIDI connections...")
+    log_out("[INFO] MIDI input:")
     print_endpoint(options.input_id)
 
-    log_out("MIDI Out:")
+    log_out("[INFO] MIDI Out:")
     print_endpoint(options.output_id)
     
     midi_in = pygame.midi.Input(options.input_id)
     midi_out = pygame.midi.Output(options.output_id)
     
-    surface = LoggerSurface(midi_input=midi_in, midi_output=midi_out, 
-            print_ping= options.print_pings)
+    logger = Logger()
+    surface = Surface(midi_input=midi_in, midi_output=midi_out, delegate=logger)
     
-    log_out("Sending system reset '0xFF'")
-    midi_out.write([ [[0xff], pygame.midi.time()] ] )
+    log_out("[INFO] Sending MIDI system reset...")
+    surface.send_reset()
     
     sleep_factor = 0.05
 
-    log_out("Establishing run loop. Sleep factor %f." % (sleep_factor))
+    log_out("[INFO] Establishing run loop. Sleep factor %f." % (sleep_factor))
 
-    while surface.run():
+    while True:
+        surface.run()
         sleep(sleep_factor)
 
-    log_out("Exiting...")
+    log_out("[INFO] Exiting...")
     midi_in.close()
     midi_out.close()
     

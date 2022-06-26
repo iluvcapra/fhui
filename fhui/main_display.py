@@ -5,11 +5,11 @@ class MainDisplay:
     def __init__(self):
         self._buffer = " " * 80
     
-    @line1.getter
+    @property
     def line1(self):
         return ("%40s" % self._buffer[0:40])
 
-    @line2.getter
+    @property
     def line2(self):
         return ("%40s" % self._buffer[40:80])
 
