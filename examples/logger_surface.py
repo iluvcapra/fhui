@@ -8,6 +8,7 @@ from enum import Enum
 from fhui.charsets import LargeDisplayCharSet, SmallDisplayCharSet
 from fhui.zones import ZonePort
 from fhui.vpot import VPotIdent, VPotRingAspect
+from fhui.time_display import TimeDisplay
 
 import mido
 
@@ -119,6 +120,7 @@ class LoggerSurface():
         self.led_zone = None
         self.fader_state = [[None,None]] * 8
         self.print_ping = print_ping
+        self.time_display = TimeDisplay()
 
     def _update_fader_state(self, order: str, fader_id: int, value: int):
         if order == 'hi':
@@ -171,7 +173,8 @@ class LoggerSurface():
             text = SmallDisplayCharSet.decode(message.data[7:])
             log_out("Small display update Zone 0x%x \"%s\"" % (message.data[6], text))
         elif message.data[5] == 0x11:
-            log_out("Timecode update")
+            self.time_display.update(message.data[6:])
+            log_out("Time display updated: %s" % self.time_display.display_string())
         elif message.data[5] == 0x12:
             text = LargeDisplayCharSet.decode(message.data[7:])
             log_out("Large display update Zone 0x%x \"%s\"" % (message.data[6], text))

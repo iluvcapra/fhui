@@ -1,40 +1,36 @@
 from enum import IntFlag
 from typing import List
 from dataclasses import dataclass
-from fhui.message_update import MessageUpdate
 
 
 @dataclass
 class TimeDisplay:
     digits : List[int]
-    decimal : List[bool]
-    
-    class Update(MessageUpdate):
-        digits: List[int]
-        decimals: List[bool]
-
-        @classmethod
-        def from_midi(cls, data) -> List['Update']:
-            retval = cls()
-            retval.digits = []
-            retval.decimals = []
-            for i in data:
-                retval.digits.append(i & 0x0f)
-                retval.decimals.append(i & 0x10 == 0x10)
-
-            return [retval]
+    decimal : List[bool] 
 
     @classmethod
     def decode_digit(cls, val: int) -> str:
         retval = ("%X" % (val))[0:1] 
         return retval
 
+    def display_string(self):
+        rep = ""
+        for i in range(8):
+            rep += TimeDisplay.decode_digit(self.digits[i])
+            if self.decimal[i]:
+                rep += "."
+
+        return rep
+
+    def update(self, raw_data: List[int]):
+        for i in range(len(raw_data)):
+            reg_addr = len(self.digits) - (i+1)
+            this_digit = raw_data[i] & 0x0f
+            self.digits[reg_addr] = this_digit
+            self.decimal[reg_addr] = raw_data[i] & 0xf0 == 0x10
+
+
     def __init__(self):
         self.digits = [0x0] * 8
         self.decimal = [False] * 8
-
-    def update(self, update: Update):
-        for i in range(len(update.digits),0,-1):
-            self.digits[i] = update.digits[i]
-            self.decimal[i] = update.digits[i]
 
