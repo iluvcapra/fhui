@@ -6,9 +6,10 @@ import mido
 from optparse import OptionParser, OptionGroup
 import sys
 import re
-from time import sleep
-
+from time import sleep, monotonic as now, strftime
 import codecs
+
+import fileinput
 
 DEFAULT_MIDI_IN_RX=r'^.*HUI In$'
 DEFAULT_MIDI_OUT_RX=r'^.*HUI Out$'
@@ -17,6 +18,20 @@ DEFAULT_MIDI_OUT_RX=r'^.*HUI Out$'
 if not pygame.midi.get_init():
     pygame.midi.init()
 
+script_start = now()
+
+def log_out(m):
+    print("%s (%f): %s" % (strftime("%H:%M:%S"), now() - script_start, m))
+
+def print_endpoint(index: int):
+    f, n, xi, xo, op = pygame.midi.get_device_info(index)
+    dirn = None
+    if xi > 0:
+        dirn = "IN"
+    else:
+        dirn = "OUT"
+
+    log_out("%i - %s : %s (%s)" % (index, codecs.decode(f, 'utf8'), codecs.decode(n, 'utf8'), dirn))
 
 def iterate_endpoints():
     for i in range(pygame.midi.get_count()):
@@ -24,16 +39,16 @@ def iterate_endpoints():
         yield (i, codecs.decode(f, 'utf8'), codecs.decode(n, 'utf8'), xi, xo, op)
 
 def list_endpoints():
-    print("Inputs:")
+    log_out("Inputs:")
     for index, interface, name, is_input, is_output, is_open in iterate_endpoints():
         if is_input == 1:
             print("%i - %s : %s" % (index, interface, name))
 
-    print("")
-    print("Outputs:")
+    log_out("")
+    log_out("Outputs:")
     for index, interface, name, is_input, is_output, is_open in iterate_endpoints():
         if is_output == 1:
-            print("%i - %s : %s" % (index, interface, name))
+            log_out("%i - %s : %s" % (index, interface, name))
 
 def get_default_input():
     port = None
@@ -80,9 +95,72 @@ class LoggerSurface():
     def __init__(self, midi_input, midi_output):
         self.midi_in = midi_input
         self.midi_out = midi_output
-        self.parser = mido.Parser() 
+        self.parser = mido.Parser()
+        self.since_last_ping = now()
+        self.ping_timeout = 2.0
+        self.led_zone = None
+        self.fader_state = [[None,None]] * 8
 
-    def run(self):
+    def update_fader_state(self, order: str, fader_id: int, value: int):
+        if order == 'hi':
+            self.fader_state[fader_id][0] = value & 0x7f
+        elif order == 'lo':
+            self.fader_state[fader_id][1] = value & 0x7f
+
+        for e in range(len(self.fader_state)):
+            if self.fader_state[e][0] and self.fader_state[e][1]:
+                position = (self.fader_state[e][0] << 7) ^ (self.fader_state[e][1])
+                log_out("Fader 0x%x set to new position 0x%x" % (e, position))
+                self.fader_state[e] = [None, None]
+
+    def handle_control_change_message(self, message):
+        if message.control == 0x0c:
+            self.led_zone = message.value
+        elif message.control == 0x2c:
+            if message.value & 0xf0 == 0x40:
+                log_out("Zone 0x%x port 0x%x new state ON" % (self.led_zone, message.value & 0x0f))
+            elif message.value & 0xf0 == 0x00:
+                log_out("Zone 0x%x port 0x%x new state OFF" % (self.led_zone, message.value & 0x0f))
+        elif message.control & 0xf0 == 0x10:
+            log_out("VPot Indicator 0x%x set to new state %x" % 
+                    (message.control & 0x0f, message.value))
+        elif message.control & 0x0f < 0x08:
+            fader_id = message.control & 0x0F
+            if message.control & 0xf0 == 0x00:
+                self.update_fader_state('hi', fader_id, message.value)
+            elif message.control & 0xf0 == 0x20:
+                self.update_fader_state('lo', fader_id, message.value)
+            else:
+                log_out(message)
+
+        else: 
+            log_out(message)
+
+
+    def handle_sysex(self, message):
+        if message.data[0:5] != (0x00, 0x00, 0x66, 0x05, 0x00):
+            print(message.data[0:5])
+            log_out("Non-HUI Sysex message: %s" % message)        
+        elif message.data[5] == 0x10:
+            log_out("Small display update Zone 0x%x" % (message.data[6]))
+        elif message.data[5] == 0x11:
+            log_out("Timecode update")
+        elif message.data[5] == 0x12:
+            log_out("Large display update Zone 0x%x" % (message.data[6]))
+        else:
+            log_out("Unrecognized HUI sysex: %s" % message)
+
+
+    def handle_vu(self, message):
+        channel = message.channel & 0xf0
+        side = (message.value & 0xf0) >> 8
+        value = message.value & 0x0f
+        log_out("VU Meter update, zone 0x%x side 0x%x value 0x%x" % (channel, side, value))
+
+    def run(self) -> bool:
+        if now() - self.since_last_ping > self.ping_timeout:
+            log_out("Host ping not received within timeout (%f secs). Going OFFLINE." % (self.ping_timeout))
+            return False
 
         packets = []
         if self.midi_in.poll():
@@ -97,27 +175,24 @@ class LoggerSurface():
             
             if message.type == 'note_off':
                 if message.channel == 0 and message.velocity == 0x40:
-                    print("responding to ping")
+                    log_out("Responding to host ping")
+                    self.since_last_ping = now()
                     self.midi_out.write_short(0x90, 0x00, 0x7f)
                 else:
-                    print(message)
+                    log_out(message)
 
-            elif message.type == 'control_change':
-                if message.control == 0x0c:
-                    print("Zone Select %x" % message.value)
-                elif message.control == 0x2c:
-                    if message.value & 0xf0 == 0x40:
-                        print("Port %x new state ON" % (message.value & 0x0f))
-                    elif message.value & 0xf0 == 0x00:
-                        print("Port %x new state OFF" % (message.value & 0x0f))
-                else:
-                    print(message)
+            elif message.is_cc():
+                self.handle_control_change_message(message)
  
+            elif message.type == 'sysex':
+                self.handle_sysex(message)
+
+            elif message.type == 'polytouch':
+                self.handle_vu(message)
             else:
-                print(message)
+                log_out(message)
 
-
-
+        return True
 
 if __name__ == '__main__':
 
@@ -128,23 +203,39 @@ if __name__ == '__main__':
         exit(0)
 
     if options.input_id is None:
-        print("FATAL: MIDI Input port not selected")
+        log_out("FATAL: MIDI Input port not selected")
         exit(-1)
 
     if options.output_id is None:
-        print("FATAL: MIDI Output port not selected")
+        log_out("FATAL: MIDI Output port not selected")
         exit(-1)
 
+    log_out("Beginning run %s" % strftime("%a, %d %b %Y %H:%M:%S"))
+
+    log_out("Creating MIDI connections...")
+    log_out("MIDI input:")
+    print_endpoint(options.input_id)
+    log_out("MIDI Out:")
+    print_endpoint(options.output_id)
+    
     midi_in = pygame.midi.Input(options.input_id)
     midi_out = pygame.midi.Output(options.output_id)
+    
+
     surface = LoggerSurface(midi_input=midi_in, midi_output=midi_out)
     
-    midi_out.write([ [[0xff, 0xff, 0xff], pygame.midi.time()] ] )
+    log_out("Sending system reset '0xFF'")
+    midi_out.write([ [[0xff], pygame.midi.time()] ] )
     
-    while True:
-        surface.run()
-        sleep(0.05)
+    sleep_factor = 0.05
 
+    log_out("Establishing run loop. Sleep factor %f." % (sleep_factor))
+    while surface.run():
+        sleep(sleep_factor)
+
+    log_out("Exiting...")
+    midi_in.close()
+    midi_out.close()
 
 
 
