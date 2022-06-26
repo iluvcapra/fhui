@@ -146,7 +146,7 @@ class LoggerSurface():
             elif message.value & 0xf0 == 0x00:
                 log_out("LED %s new state OFF" % (zoneport, ))
             else:
-                log_out("Unregonzied control change message: %s" % message)
+                log_out("Unrecognzied control change message: %s" % message)
         elif message.control & 0xf0 == 0x10:
             vpot_ident = VPotIdent(message.control & 0x0f)
             vpot_value = VPotRingAspect(message.value)
@@ -203,7 +203,6 @@ class LoggerSurface():
             self.parser.feed(event)
 
         for message in self.parser:
-            
             if message.type == 'note_off':
                 if message.channel == 0 and message.velocity == 0x40:
                     if self.print_ping:
@@ -247,6 +246,7 @@ if __name__ == '__main__':
     log_out("Creating MIDI connections...")
     log_out("MIDI input:")
     print_endpoint(options.input_id)
+
     log_out("MIDI Out:")
     print_endpoint(options.output_id)
     
@@ -262,13 +262,16 @@ if __name__ == '__main__':
     sleep_factor = 0.05
 
     log_out("Establishing run loop. Sleep factor %f." % (sleep_factor))
+
     while surface.run():
         sleep(sleep_factor)
 
     log_out("Exiting...")
     midi_in.close()
     midi_out.close()
-
+    
+    del midi_in
+    del midi_out
 
 
 
